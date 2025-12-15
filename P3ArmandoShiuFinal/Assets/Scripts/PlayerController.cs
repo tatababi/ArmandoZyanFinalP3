@@ -1,24 +1,23 @@
 using UnityEngine;
-using System.Collections; 
-
+using System.Collections;
 
 public class PlayerController : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-
     public float moveSpeed;
-
     private bool isMoving;
-
     private Vector2 input;
-
     private Animator animator;
 
-    public LayerMask solidObjectsLayer;
-    public LayerMask interactablesLayer; 
+    // --- QUEST MANAGEMENT VARIABLES ---
+    private bool hasGuitar = false;
+    public GameObject guitarItemInScene; // Assign this in the Unity Inspector
+    // ----------------------------------
 
-    void Awake ()
-            {
+    public LayerMask solidObjectsLayer;
+    public LayerMask interactablesLayer; // Now only used for the NPC interaction point
+
+    void Awake()
+    {
         animator = GetComponent<Animator>();
         if (animator == null)
         {
@@ -26,7 +25,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
     private void Update()
     {
         if (!isMoving)
@@ -37,11 +35,8 @@ public class PlayerController : MonoBehaviour
             animator.SetFloat("moveX", input.x);
             animator.SetFloat("moveY", input.y);
 
-
-
-            if (input != Vector2.zero) // Simplified condition logic
+            if (input != Vector2.zero)
             {
-                // ERROR FIXED: Typo 'postition' changed to 'position'
                 var targetPos = transform.position;
                 targetPos.x += input.x;
                 targetPos.y += input.y;
@@ -55,39 +50,78 @@ public class PlayerController : MonoBehaviour
             Interact();
     }
 
-    void Interact ()
-    { 
+    void Interact()
+    {
         var facingDir = new Vector3(animator.GetFloat("moveX"), animator.GetFloat("moveY"));
         var interactPos = transform.position + facingDir;
+        DialogueManager dialogueManager = FindAnyObjectByType<DialogueManager>();
 
-        //Debug.DrawLine(transform.position, interactPos, Color.red, 1f);
-        var collider = Physics2D.OverlapCircle(interactPos, 0.2f, interactablesLayer);
-        if (collider != null)
+        if (dialogueManager == null) return;
+
+        // --- NEW INTERACTION LOGIC ---
+
+        // A. Check for the Guitar Item specifically
+        // We use a shorter radius to ensure we are right on top of it.
+        var guitarCollider = Physics2D.OverlapCircle(interactPos, 0.2f, interactablesLayer);
+
+        // Make sure the object we hit is actually the guitar we assigned in the inspector
+        if (guitarItemInScene != null && guitarCollider != null && guitarCollider.gameObject == guitarItemInScene)
         {
-            Debug.Log("there is an NPC here!");
+            if (!hasGuitar)
+            {
+                hasGuitar = true;
+                guitarItemInScene.SetActive(false); // Make the guitar disappear
+                string[] pickupLines = { "You found Junk's... well, Junk!!" };
+                dialogueManager.StartDialogue("Junk Guitar", pickupLines);
+            }
+            return; // Stop here after interacting with the guitar
         }
-     
+
+        // B. Check for the NPC interaction point
+        // This is your original NPC interaction logic using the interactablesLayer
+        var npcCollider = Physics2D.OverlapCircle(interactPos, 0.2f, interactablesLayer);
+
+        if (npcCollider != null)
+        {
+            string npcName = "Junk Rocker";
+            string[] linesToDisplay;
+
+            if (hasGuitar)
+            {
+                // Dialogue AFTER getting the guitar
+                linesToDisplay = new string[] { "She's still a bit rough around the edges, but she should do fine little rocker!", };
+            }
+            else
+            {
+                // Dialogue BEFORE getting the guitar
+                linesToDisplay = new string[]
+                {
+                    "Aye little rocker!",
+                    "I see you want to get this place up and running again with that show of yours",
+                    "Tell you what, I had an old loaner guitar somewhere in here way back then",
+                    "If you can find it and bring it to me, I'll perform for ya little show little rocker Whaddya say?",
+                };
+            }
+            dialogueManager.StartDialogue(npcName, linesToDisplay);
+        }
     }
 
-    private IEnumerator Move(Vector3 targetPos) 
+    // ... (Move and IsWalkable methods remain the same below) ...
+    private IEnumerator Move(Vector3 targetPos)
     {
-        isMoving = true; 
-
-        
+        isMoving = true;
         while (Vector3.SqrMagnitude(targetPos - transform.position) > Mathf.Epsilon)
         {
-            // ERROR FIXED: Incorrect use of MoveTowards parameters
             transform.position = Vector3.MoveTowards(transform.position, targetPos, moveSpeed * Time.deltaTime);
             yield return null;
         }
-
         transform.position = targetPos;
-        isMoving = false; // Unset isMoving flag
+        isMoving = false;
     }
 
     private bool IsWalkable(Vector3 targetPos)
     {
-        if (Physics2D.OverlapCircle(targetPos, 0.2f, solidObjectsLayer | interactablesLayer)  != null)
+        if (Physics2D.OverlapCircle(targetPos, 0.2f, solidObjectsLayer | interactablesLayer) != null)
         {
             return false;
         }
