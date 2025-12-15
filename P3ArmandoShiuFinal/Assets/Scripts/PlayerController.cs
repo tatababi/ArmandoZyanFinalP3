@@ -1,5 +1,6 @@
 using UnityEngine;
-using System.Collections; // <-- ADD THIS LINE
+using System.Collections; 
+
 
 public class PlayerController : MonoBehaviour
 {
@@ -11,6 +12,20 @@ public class PlayerController : MonoBehaviour
 
     private Vector2 input;
 
+    private Animator animator;
+
+    public LayerMask solidObjectsLayer;
+    public LayerMask interactablesLayer; 
+
+    void Awake ()
+            {
+        animator = GetComponent<Animator>();
+        if (animator == null)
+        {
+            Debug.LogError("Animator component not found on GameObject.");
+        }
+    }
+
     // Update is called once per frame
     private void Update()
     {
@@ -19,6 +34,11 @@ public class PlayerController : MonoBehaviour
             input.x = Input.GetAxisRaw("Horizontal");
             input.y = Input.GetAxisRaw("Vertical");
 
+            animator.SetFloat("moveX", input.x);
+            animator.SetFloat("moveY", input.y);
+
+
+
             if (input != Vector2.zero) // Simplified condition logic
             {
                 // ERROR FIXED: Typo 'postition' changed to 'position'
@@ -26,16 +46,34 @@ public class PlayerController : MonoBehaviour
                 targetPos.x += input.x;
                 targetPos.y += input.y;
 
-                StartCoroutine(Move(targetPos));
+                if (IsWalkable(targetPos))
+                    StartCoroutine(Move(targetPos));
             }
         }
+
+        if (Input.GetKeyDown(KeyCode.Z))
+            Interact();
     }
 
-    private IEnumerator Move(Vector3 targetPos) // Made private and used correct casing
-    {
-        isMoving = true; // Set isMoving flag
+    void Interact ()
+    { 
+        var facingDir = new Vector3(animator.GetFloat("moveX"), animator.GetFloat("moveY"));
+        var interactPos = transform.position + facingDir;
 
-        // ERROR FIXED: Invalid chained comparison logic and missing transform.position reference
+        //Debug.DrawLine(transform.position, interactPos, Color.red, 1f);
+        var collider = Physics2D.OverlapCircle(interactPos, 0.2f, interactablesLayer);
+        if (collider != null)
+        {
+            Debug.Log("there is an NPC here!");
+        }
+     
+    }
+
+    private IEnumerator Move(Vector3 targetPos) 
+    {
+        isMoving = true; 
+
+        
         while (Vector3.SqrMagnitude(targetPos - transform.position) > Mathf.Epsilon)
         {
             // ERROR FIXED: Incorrect use of MoveTowards parameters
@@ -45,5 +83,14 @@ public class PlayerController : MonoBehaviour
 
         transform.position = targetPos;
         isMoving = false; // Unset isMoving flag
+    }
+
+    private bool IsWalkable(Vector3 targetPos)
+    {
+        if (Physics2D.OverlapCircle(targetPos, 0.2f, solidObjectsLayer | interactablesLayer)  != null)
+        {
+            return false;
+        }
+        return true;
     }
 }
