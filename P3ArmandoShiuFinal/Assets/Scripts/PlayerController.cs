@@ -8,10 +8,10 @@ public class PlayerController : MonoBehaviour
     private Vector2 input;
     private Animator animator;
 
-    // --- QUEST MANAGEMENT VARIABLES ---
+    // QUEST MANAGEMENT VARIABLES 
     private bool hasGuitar = false;
     public GameObject guitarItemInScene; // Assign this in the Unity Inspector
-    // ----------------------------------
+    // 
 
     public LayerMask solidObjectsLayer;
     public LayerMask interactablesLayer; // Now only used for the NPC interaction point
@@ -58,13 +58,12 @@ public class PlayerController : MonoBehaviour
 
         if (dialogueManager == null) return;
 
-        // --- NEW INTERACTION LOGIC ---
+        // NEW INTERACTION LOGIC 
 
-        // A. Check for the Guitar Item specifically
-        // We use a shorter radius to ensure we are right on top of it.
+        
         var guitarCollider = Physics2D.OverlapCircle(interactPos, 0.2f, interactablesLayer);
 
-        // Make sure the object we hit is actually the guitar we assigned in the inspector
+        
         if (guitarItemInScene != null && guitarCollider != null && guitarCollider.gameObject == guitarItemInScene)
         {
             if (!hasGuitar)
@@ -74,11 +73,11 @@ public class PlayerController : MonoBehaviour
                 string[] pickupLines = { "You found Junk's... well, Junk!!" };
                 dialogueManager.StartDialogue("Junk Guitar", pickupLines);
             }
-            return; // Stop here after interacting with the guitar
+            return; 
         }
 
-        // B. Check for the NPC interaction point
-        // This is your original NPC interaction logic using the interactablesLayer
+       
+        
         var npcCollider = Physics2D.OverlapCircle(interactPos, 0.2f, interactablesLayer);
 
         if (npcCollider != null)
@@ -88,12 +87,12 @@ public class PlayerController : MonoBehaviour
 
             if (hasGuitar)
             {
-                // Dialogue AFTER getting the guitar
+               
                 linesToDisplay = new string[] { "She's still a bit rough around the edges, but she should do fine little rocker!", };
             }
             else
             {
-                // Dialogue BEFORE getting the guitar
+              
                 linesToDisplay = new string[]
                 {
                     "Aye little rocker!",
@@ -106,7 +105,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // ... (Move and IsWalkable methods remain the same below) ...
+  
     private IEnumerator Move(Vector3 targetPos)
     {
         isMoving = true;
